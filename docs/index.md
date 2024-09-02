@@ -64,7 +64,7 @@ provider "icinga2" {}
 
 Usage:
 
-```bash
+```sh
 export ICINGA2_API_URL=https://192.168.33.5:5665/v1
 export ICINGA2_API_USER=root
 export ICINGA2_API_PASSWORD=icinga
