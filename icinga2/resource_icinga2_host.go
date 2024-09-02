@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/lrsmith/go-icinga2-api/iapi"
+	"github.com/legioner0/go-icinga2-api/iapi"
 )
 
 func resourceIcinga2Host() *schema.Resource {
@@ -82,7 +82,7 @@ func resourceIcinga2HostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Call CreateHost with normalized data
-	hosts, err := client.CreateHost(hostname, address, checkCommand, vars, templates, groups)
+	hosts, err := client.CreateHost(hostname, address, "", checkCommand, vars, templates, groups)
 	if err != nil {
 		return err
 	}

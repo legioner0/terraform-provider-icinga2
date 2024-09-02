@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/lrsmith/go-icinga2-api/iapi"
+	"github.com/legioner0/go-icinga2-api/iapi"
 )
 
 func TestAccCreateBasicHost(t *testing.T) {
