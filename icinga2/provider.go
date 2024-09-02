@@ -37,6 +37,18 @@ func Provider() *schema.Provider {
 				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_INSECURE_SKIP_TLS_VERIFY", false),
 				Description: descriptions["insecure_skip_tls_verify"],
 			},
+			"retry_count": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRY_COUNT", 0),
+				Description: descriptions["retry_count"],
+			},
+			"retry_delay": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRY_DELAY", 0),
+				Description: descriptions["retry_delay"],
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"icinga2_host":         resourceIcinga2Host(),
@@ -57,11 +69,13 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		d.Get("api_password").(string),
 		d.Get("api_url").(string),
 		d.Get("insecure_skip_tls_verify").(bool),
+		d.Get("retry_count").(int),
+		d.Get("retry_delay").(int),
 	)
 
 	err := validateURL(d.Get("api_url").(string))
 
-	if err := config.Connect(); err != nil {
+	if err, _ := config.Connect(); err != nil {
 		return nil, err
 	}
 
@@ -76,6 +90,8 @@ func init() {
 		"api_user":                 "The user to authenticate to the Icinga2 Server as.\n",
 		"api_password":             "The password for authenticating to the Icinga2 server.\n",
 		"insecure_skip_tls_verify": "Disable TLS verify when connecting to Icinga2 Server\n",
+		"retry_count":              "Retry count when connecting to Icinga2 Server before fail\n",
+		"retry_delay":              "Retry delay between attempts\n",
 	}
 }
 
