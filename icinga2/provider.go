@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/lrsmith/go-icinga2-api/iapi"
@@ -37,16 +39,16 @@ func Provider() *schema.Provider {
 				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_INSECURE_SKIP_TLS_VERIFY", false),
 				Description: descriptions["insecure_skip_tls_verify"],
 			},
-			"retry_count": {
+			"retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRY_COUNT", 0),
-				Description: descriptions["retry_count"],
+				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRIES", 0),
+				Description: descriptions["retries"],
 			},
 			"retry_delay": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRY_DELAY", 0),
+				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRY_DELAY", "0"),
 				Description: descriptions["retry_delay"],
 			},
 		},
@@ -64,13 +66,33 @@ func Provider() *schema.Provider {
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 
+	delay := d.Get("retry_delay").(string)
+	var duration time.Duration
+
+	if delay != "" {
+		var err error
+		// Try parsing as a duration
+		duration, err = time.ParseDuration(delay)
+		if err != nil {
+			// Failing that, convert to an integer and treat as seconds
+			seconds, err := strconv.Atoi(delay)
+			if err != nil {
+				return nil, fmt.Errorf("invalid delay: %s", delay)
+			}
+			duration = time.Duration(seconds) * time.Second
+		}
+		if duration < 0 {
+			return nil, fmt.Errorf("delay cannot be negative: %s", duration)
+		}
+	}
+
 	config, _ := iapi.New(
 		d.Get("api_user").(string),
 		d.Get("api_password").(string),
 		d.Get("api_url").(string),
 		d.Get("insecure_skip_tls_verify").(bool),
-		d.Get("retry_count").(int),
-		d.Get("retry_delay").(int),
+		d.Get("retries").(int),
+		duration,
 	)
 
 	err := validateURL(d.Get("api_url").(string))
@@ -90,8 +112,8 @@ func init() {
 		"api_user":                 "The user to authenticate to the Icinga2 Server as.\n",
 		"api_password":             "The password for authenticating to the Icinga2 server.\n",
 		"insecure_skip_tls_verify": "Disable TLS verify when connecting to Icinga2 Server\n",
-		"retry_count":              "Retry count when connecting to Icinga2 Server before fail\n",
-		"retry_delay":              "Retry delay between attempts\n",
+		"retries":                  "How many times to retry on low level errors and `503 Icinga is reloading`. Defaults to `0`.\n",
+		"retry_delay":              "Delay between retry attempts. Valid values are durations expressed as `500ms`, etc. or a plain number which is treated as whole seconds.\n",
 	}
 }
 

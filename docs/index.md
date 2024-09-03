@@ -23,8 +23,8 @@ provider "icinga2" {
   api_user                 = "root"
   api_password             = "icinga"
   insecure_skip_tls_verify = true
-  retry_count              = 5
-  retry_delay              = 5
+  retries                  = 5
+  retry_delay              = "500ms"
 }
 
 # Configure a host
@@ -55,7 +55,7 @@ provider "icinga2" {
 
 You can provide your credentials via `ICINGA2_API_USER` and `ICINGA2_API_PASSWORD`,
 environment variables, storing your Icinga2 API user and password, respectively.
-`ICINGA2_API_URL`, `ICINGA2_INSECURE_SKIP_TLS_VERIFY`, `ICINGA2_RETRY_COUNT`, `ICINGA2_RETRY_DELAY` are also used, if
+`ICINGA2_API_URL`, `ICINGA2_INSECURE_SKIP_TLS_VERIFY`, `ICINGA2_RETRIES`, `ICINGA2_RETRY_DELAY` are also used, if
 applicable:
 
 ```hcl
@@ -69,8 +69,8 @@ export ICINGA2_API_URL=https://192.168.33.5:5665/v1
 export ICINGA2_API_USER=root
 export ICINGA2_API_PASSWORD=icinga
 export ICINGA2_INSECURE_SKIP_TLS_VERIFY=true
-export ICINGA2_RETRY_COUNT=5
-export ICINGA2_RETRY_DELAY=5
+export ICINGA2_RETRIES=5
+export ICINGA2_RETRY_DELAY=500ms
 terraform plan
 ```
 
@@ -92,9 +92,10 @@ terraform plan
   risk and should be avoided. May alternatively be set via the
   ``ICINGA2_INSECURE_SKIP_TLS_VERIFY`` environment variable.
 
-* ``retry_count`` - (optional) Defaults to 0. If set to non-zero, retry requests to Icinga2 server up to specified
-  value, if server returns `503 Icinga is reloading` or `Connection refused`. May alternatively be set via the
-  ``ICINGA2_RETRY_COUNT`` environment variable.
+* ``retries`` - (optional) Defaults to 0. If set to non-zero, retry requests to Icinga2 server up to specified
+  value, if server returns `503 Icinga is reloading` or low level errors, like `Connection refused`. 
+  May alternatively be set via the ``ICINGA2_RETRIES`` environment variable.
 
-* ``retry_delay`` - (optional) Defaults to 0. Delay between retry attempts. May alternatively be set via the
+* ``retry_delay`` - (optional) Defaults to 0. Delay between retry attempts. Valid values are durations expressed as 
+  `500ms`, etc. or a plain number which is treated as whole seconds.May alternatively be set via the
   ``ICINGA2_RETRY_DELAY`` environment variable.
