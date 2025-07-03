@@ -1,6 +1,7 @@
 package icinga2
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -12,6 +13,10 @@ import (
 	"github.com/legioner0/go-icinga2-api/iapi"
 )
 
+var (
+	errInsecureSSL = errors.New("Requests are only allowed to use the HTTPS protocol so that traffic remains encrypted")
+)
+
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -19,37 +24,37 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_API_URL", nil),
-				Description: descriptions["api_url"],
+				Description: "The address of the Icinga2 server.",
 			},
 			"api_user": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_API_USER", nil),
-				Description: descriptions["api_user"],
+				Description: "The user to authenticate to the Icinga2 Server as.",
 			},
 			"api_password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_API_PASSWORD", nil),
-				Description: descriptions["api_password"],
+				Description: "The password for authenticating to the Icinga2 server.",
 			},
 			"insecure_skip_tls_verify": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_INSECURE_SKIP_TLS_VERIFY", false),
-				Description: descriptions["insecure_skip_tls_verify"],
+				Description: "Disable TLS verify when connecting to Icinga2 Server.",
 			},
 			"retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRIES", 0),
-				Description: descriptions["retries"],
+				Description: "How many times to retry on low level errors and `503 Icinga is reloading`. Defaults to `0`.\n",
 			},
 			"retry_delay": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRY_DELAY", "0"),
-				Description: descriptions["retry_delay"],
+				Description: "Delay between retry attempts. Valid values are durations expressed as `500ms`, etc. or a plain number which is treated as whole seconds.\n",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -65,7 +70,6 @@ func Provider() *schema.Provider {
 }
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
-
 	delay := d.Get("retry_delay").(string)
 	var duration time.Duration
 
@@ -95,42 +99,29 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		duration,
 	)
 
-	err := validateURL(d.Get("api_url").(string))
+	if err := validateURL(d.Get("api_url").(string)); err != nil {
+		return nil, err
+	}
 
 	if err, _ := config.Connect(); err != nil {
 		return nil, err
 	}
 
-	return config, err
-}
-
-var descriptions map[string]string
-
-func init() {
-	descriptions = map[string]string{
-		"api_url":                  "The address of the Icinga2 server.\n",
-		"api_user":                 "The user to authenticate to the Icinga2 Server as.\n",
-		"api_password":             "The password for authenticating to the Icinga2 server.\n",
-		"insecure_skip_tls_verify": "Disable TLS verify when connecting to Icinga2 Server\n",
-		"retries":                  "How many times to retry on low level errors and `503 Icinga is reloading`. Defaults to `0`.\n",
-		"retry_delay":              "Delay between retry attempts. Valid values are durations expressed as `500ms`, etc. or a plain number which is treated as whole seconds.\n",
-	}
+	return config, nil
 }
 
 func validateURL(urlString string) error {
-
-	//ICINGA2_API_URL=https://127.0.0.1:4665/v1
 	tokens, err := url.Parse(urlString)
 	if err != nil {
 		return err
 	}
 
 	if tokens.Scheme != "https" {
-		return fmt.Errorf("Error : Requests are only allowed to use the HTTPS protocol so that traffic remains encrypted.")
+		return errInsecureSSL
 	}
 
 	if !strings.HasSuffix(tokens.Path, "/v1") {
-		return fmt.Errorf("Error : Invalid API version %s specified. Only v1 is currently supported.", tokens.Path)
+		return fmt.Errorf("error : Invalid API version %s specified. Only v1 is currently supported", tokens.Path)
 	}
 
 	return nil
