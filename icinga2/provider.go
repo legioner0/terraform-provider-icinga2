@@ -47,13 +47,13 @@ func Provider() *schema.Provider {
 			"retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRIES", 0),
+				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_RETRIES", 0),
 				Description: "How many times to retry on low level errors and `503 Icinga is reloading`. Defaults to `0`.\n",
 			},
 			"retry_delay": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_RETRY_DELAY", "0"),
+				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_RETRY_DELAY", "0"),
 				Description: "Delay between retry attempts. Valid values are durations expressed as `500ms`, etc. or a plain number which is treated as whole seconds.\n",
 			},
 		},
