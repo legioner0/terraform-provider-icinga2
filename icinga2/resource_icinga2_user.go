@@ -25,6 +25,11 @@ func resourceIcinga2User() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"vars": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -36,8 +41,16 @@ func resourceIcinga2UserCreate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	email := d.Get("email").(string)
 
+	vars := make(map[string]string)
+
+	// Normalize from map[string]interface{} to map[string]string
+	iterator := d.Get("vars").(map[string]interface{})
+	for key, value := range iterator {
+		vars[key] = value.(string)
+	}
+
 	// Call CreateUser with normalized data
-	users, err := client.CreateUser(name, email)
+	users, err := client.CreateUser(name, email, vars)
 	if err != nil {
 		return err
 	}
@@ -74,6 +87,7 @@ func resourceIcinga2UserRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId(name)
 			_ = d.Set("name", user.Name)
 			_ = d.Set("email", user.Attrs.Email)
+			_ = d.Set("vars", user.Attrs.Vars)
 			found = true
 		}
 	}

@@ -22,7 +22,7 @@ func TestAccCreateHostNotification(t *testing.T) {
 	createResources := func() {
 		icinga2Server := testAccProvider.Meta().(*iapi.Server)
 		icinga2Server.CreateHost(hostname, "10.0.0.1", "", "hostalive", nil, nil, nil)
-		icinga2Server.CreateUser(username, "email@example.com")
+		icinga2Server.CreateUser(username, "email@example.com", nil)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -70,7 +70,7 @@ func TestAccCreateServiceNotification(t *testing.T) {
 	createResources := func() {
 		icinga2Server := testAccProvider.Meta().(*iapi.Server)
 		icinga2Server.CreateHost(hostname, "10.0.0.1", "", "hostalive", nil, nil, nil)
-		icinga2Server.CreateUser(username, "email@example.com")
+		icinga2Server.CreateUser(username, "email@example.com", nil)
 		icinga2Server.CreateService(servicename, hostname, "ping", nil, nil)
 	}
 
