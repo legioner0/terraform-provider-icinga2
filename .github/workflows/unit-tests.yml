@@ -7,19 +7,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: [1.24]
+        go: [1.25]
         os: [ubuntu-latest]
-        make_target: [errcheck, test, vet]
+        make_target: [lint, test]
 
     steps:
+      - name: Check out code repository source code
+        uses: actions/checkout@v6
+
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
         id: go
 
-      - name: Check out code repository source code
-        uses: actions/checkout@v4
+      - name: Set up golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          install-only: true
 
       # https://help.github.com/en/actions/reference/workflow-commands-for-github-actions
       - name: Set build variables
