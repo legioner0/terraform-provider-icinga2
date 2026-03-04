@@ -45,6 +45,12 @@ func Provider() *schema.Provider {
 				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_INSECURE_SKIP_TLS_VERIFY", false),
 				Description: "Disable TLS verify when connecting to Icinga2 Server.",
 			},
+			"ca_cert_file": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_API_CA_CERT_FILE", ""),
+				Description: "The CA certificate of Icinga2 Server.",
+			},
 			"retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -90,12 +96,21 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		}
 	}
 
+	caCertFile := d.Get("ca_cert_file").(string)
+	if caCertFile != "" {
+		_, err := os.Stat(caCertFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	config, _ := iapi.New(
 		d.Get("api_user").(string),
 		d.Get("api_password").(string),
 		d.Get("api_url").(string),
 		d.Get("insecure_skip_tls_verify").(bool),
-		d.Get("retries").(int),
+		caCertFile,
+		int32(d.Get("retries").(int)),
 		duration,
 	)
 

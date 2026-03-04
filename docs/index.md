@@ -40,6 +40,8 @@ resource "icinga2_host" "web-server" {
 
 - `insecure_skip_tls_verify` (Boolean) Disable TLS verify when connecting to Icinga2 Server.
 
+- `ca_cert_file` (String) The CA certificate of Icinga2 Server.
+
 - `retries` - (optional) Defaults to 0. If set to non-zero, retry requests to Icinga2 server up to specified
   value, if server returns `503 Icinga is reloading` or low level errors, like `Connection refused`. 
 

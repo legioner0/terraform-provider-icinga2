@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/terraform-plugin-mux v0.22.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.39.0
 	github.com/hashicorp/terraform-plugin-testing v1.14.0
-	github.com/legioner0/go-icinga2-api v0.5.2
+	github.com/legioner0/go-icinga2-api v1.5.3
 )
 
 require (
