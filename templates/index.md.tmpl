@@ -28,11 +28,6 @@ For example, the {{ .SchemaMarkdown }} template can be used to replace manual sc
 ### Optional
 
 - `insecure_skip_tls_verify` (Boolean) Disable TLS verify when connecting to Icinga2 Server.
-
 - `ca_cert_file` (String) The CA certificate of Icinga2 Server.
-
-- `retries` - (optional) Defaults to 0. If set to non-zero, retry requests to Icinga2 server up to specified
-  value, if server returns `503 Icinga is reloading` or low level errors, like `Connection refused`.
-
-- `retry_delay` - (String) Defaults to 0. Delay between retry attempts. Valid values are durations expressed as
-  `500ms`, etc. or a plain number which is treated as whole seconds.
+- `tries` (Integer) Number of tries when calling the Icinga2 Server.
+- `retry_delay` (Integer) Number of seconds between retries when calling the Icinga2 Server.

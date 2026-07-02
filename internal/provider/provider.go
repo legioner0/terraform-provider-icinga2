@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 	"github.com/legioner0/go-icinga2-api/iapi"
 )
 
@@ -41,8 +40,8 @@ type icinga2ProviderModel struct {
 	Password                 types.String `tfsdk:"api_password"`
 	Insecure_skip_tls_verify types.Bool   `tfsdk:"insecure_skip_tls_verify"`
 	Ca_cert_file             types.String `tfsdk:"ca_cert_file"`
-	Retries                  types.Int32  `tfsdk:"retries"`
-	Retry_delay              types.String `tfsdk:"retry_delay"`
+	Tries                    types.Int64  `tfsdk:"tries"`
+	RetryDelay               types.Int64  `tfsdk:"retry_delay"`
 }
 
 func (p *icinga2Provider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -74,13 +73,13 @@ func (p *icinga2Provider) Schema(_ context.Context, _ provider.SchemaRequest, re
 				Optional:    true,
 				Description: "The CA certificate of Icinga2 Server.",
 			},
-			"retries": schema.Int32Attribute{
+			"tries": schema.Int64Attribute{
 				Optional:    true,
-				Description: "How many times to retry on low level errors and `503 Icinga is reloading`. Defaults to `0`.",
+				Description: "Number of tries when calling the Icinga2 Server.",
 			},
-			"retry_delay": schema.StringAttribute{
+			"retry_delay": schema.Int64Attribute{
 				Optional:    true,
-				Description: "Delay between retry attempts. Valid values are durations expressed as `500ms`, etc. or a plain number which is treated as whole seconds.",
+				Description: "Number of seconds between retries when calling the Icinga2 Server.",
 			},
 		},
 	}
@@ -130,9 +129,6 @@ func (p *icinga2Provider) Configure(ctx context.Context, req provider.ConfigureR
 	api_password := os.Getenv("ICINGA2_API_PASSWORD")
 	tlsVerify, _ := strconv.ParseBool(os.Getenv("ICINGA2_INSECURE_SKIP_TLS_VERIFY"))
 	ca_cert_file := os.Getenv("ICINGA2_API_CA_CERT_FILE")
-	retries64, _ := strconv.ParseInt(os.Getenv("ICINGA2_API_RETRIES"), 10, 32)
-	retries := int32(retries64)
-	retry_delay := os.Getenv("ICINGA2_API_RETRY_DELAY")
 
 	if !config.Host.IsNull() {
 		api_url = config.Host.ValueString()
@@ -148,14 +144,6 @@ func (p *icinga2Provider) Configure(ctx context.Context, req provider.ConfigureR
 
 	if !config.Ca_cert_file.IsNull() {
 		ca_cert_file = config.Ca_cert_file.ValueString()
-	}
-
-	if !config.Retries.IsNull() {
-		retries = config.Retries.ValueInt32()
-	}
-
-	if !config.Retry_delay.IsNull() {
-		retry_delay = config.Retry_delay.ValueString()
 	}
 
 	if api_url == "" {
@@ -188,8 +176,10 @@ func (p *icinga2Provider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 	}
 
+	var err error
+
 	if ca_cert_file != "" {
-		_, err := os.Stat(ca_cert_file)
+		_, err = os.Stat(ca_cert_file)
 		if err != nil {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("ca_cert_file"),
@@ -201,30 +191,26 @@ func (p *icinga2Provider) Configure(ctx context.Context, req provider.ConfigureR
 		}
 	}
 
-	var duration time.Duration
-	if retry_delay != "" {
-		var err error
-		// Try parsing as a duration
-		duration, err = time.ParseDuration(retry_delay)
+	tries := 0
+	if os.Getenv("ICINGA2_TRIES") != "" {
+		tries, err = strconv.Atoi(os.Getenv("ICINGA2_TRIES"))
 		if err != nil {
-			// Failing that, convert to an integer and treat as seconds
-			seconds, err := strconv.Atoi(retry_delay)
-			if err != nil {
-				resp.Diagnostics.AddAttributeError(
-					path.Root("retry_delay"),
-					"Invalid icinga2 API retry delay",
-					"The provider cannot create the icinga2 API client as there is an invalid configuration value for the icinga2 API retry delay. "+
-						"Either target apply the source of the value first, set the value statically in the configuration, or use the ICINGA2_API_RETRY_DELAY environment variable.",
-				)
-			}
-			duration = time.Duration(seconds) * time.Second
+			resp.Diagnostics.AddAttributeError(
+				path.Root("tries"),
+				"Failed to parse the number of tries",
+				err.Error(),
+			)
 		}
-		if duration < 0 {
+	}
+
+	retryDelay := 0
+	if os.Getenv("ICINGA2_RETRY_DELAY") != "" {
+		retryDelay, err = strconv.Atoi(os.Getenv("ICINGA2_RETRY_DELAY"))
+		if err != nil {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("retry_delay"),
-				"Invalid icinga2 API retry delay",
-				"The provider cannot create the icinga2 API client as there is an invalid configuration value for the icinga2 API retry delay. "+
-					"Either target apply the source of the value first, set the value statically in the configuration, or use the ICINGA2_API_RETRY_DELAY environment variable.",
+				"Failed to parse the retry delay",
+				err.Error(),
 			)
 		}
 	}
@@ -239,8 +225,8 @@ func (p *icinga2Provider) Configure(ctx context.Context, req provider.ConfigureR
 		api_url,
 		tlsVerify,
 		ca_cert_file,
-		retries,
-		duration,
+		tries,
+		time.Duration(retryDelay)*time.Second,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -262,6 +248,12 @@ func (p *icinga2Provider) DataSources(_ context.Context) []func() datasource.Dat
 
 func (p *icinga2Provider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		CheckCommand,
+		Downtime,
+		Host,
 		HostGroup,
+		Notification,
+		Service,
+		User,
 	}
 }
