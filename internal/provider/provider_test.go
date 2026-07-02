@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/lrsmith/go-icinga2-api/iapi"
+	"github.com/legioner0/go-icinga2-api/iapi"
 )
 
 const (
@@ -48,6 +48,7 @@ func testAccClient() (*iapi.Server, error) {
 		api_password,
 		api_url,
 		tlsVerify,
+		"",
 		0,
 		0,
 	)
